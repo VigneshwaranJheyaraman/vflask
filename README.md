@@ -1,0 +1,20 @@
+vFlask
+
+#           #  ######
+ #        #    #
+  #     #      ######
+   #  #        #
+    #          #
+
+vFlask allows developers to deploy their flask application without the need for updating the environment vairables which is a PAIN IN THE ASS setup.
+
+-> vFlask allows the developers to just specify the root or app directory name to the CLI and define the __main__ method inside the __init__.py of the flask application with their specific implementation
+-> app/__init__.py
+    #Your code goes here
+
+    if __name__ == "__main__":
+        #your function
+
+-> vFlask uses the Flask's default directory namespace i.e., developers no need to specify the directory name if its "app" else respective option is provided to specify the directory name
+
+-> vFlask support proper implementation, which is why it suggests to use uWSGI implementation for PRODUCTION environment, with help of "uwsgi-config" option to CLI which specifies the name of wsgi_config.ini file.
