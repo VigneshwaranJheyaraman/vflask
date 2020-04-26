@@ -22,7 +22,13 @@ def get_file_location(ctx, params, value):
         else:
             click.echo("No such file found under location {}".format(vflask_cli.state.get('parent_dir')), err=True)
             ctx.abort()
-    
+
+#--version CB
+def show_version(ctx,params,value):
+    if not value or ctx.resilient_parsing:
+            return
+    click.echo("Version 1.0.0")
+    ctx.exit()
 #callbacks ends here
 
 @vflask_cli.command("deploy",short_help="Run the server based on the flavour specification", epilog="VRAJ Incorporation Initiative")
@@ -59,11 +65,19 @@ def get_file_location(ctx, params, value):
     help="Port Value for running the server",
     show_default=True
 )
+@click.option(
+    "--version", "-V", 
+    is_eager=True, 
+    is_flag=True, 
+    expose_value=False,
+    callback=show_version,
+    flag_value=True
+)
 @click.pass_context
 def delpoy_server(ctx, prod_env, app_dir, uwsgi, host, port):
     app_loc = get_full_location("__init__.py", app_dir)
     if app_loc:
-        set_environment(FLASK_APP=app_loc, FLASK_ENV="production" if prod_env else "debug")
+        set_environment(FLASK_APP=app_loc, FLASK_ENV="production" if prod_env else "development")
         if prod_env:
             if uwsgi:
                 #get_file_location
