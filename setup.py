@@ -17,4 +17,8 @@ setup(
             "vflask=vflaskcli:vflask_cli"
         ],
     },
+    install_requires = [
+        "flask>=1.0",
+        "colorama"
+    ],
 )

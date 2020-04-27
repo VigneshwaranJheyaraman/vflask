@@ -1,7 +1,8 @@
 from .groups import VFlask
-from .utils import get_full_location, set_environment
+from .utils import get_full_location, set_environment, error, style_msg
 import click
-from flask.cli import run_command
+import subprocess
+from flask.cli import run_command, shell_command
 
 @click.group("vflask" ,cls=VFlask, commands={})
 def vflask_cli():
@@ -13,21 +14,19 @@ def vflask_cli():
 #uwsgi CB
 def get_file_location(ctx, params, value):
     if not value:
-        click.echo("Please specifiy the filename", err=True)
-        ctx.exit()
+        error("Please specifiy the filename")
     else:
         location = get_full_location(value, vflask_cli.state.get("parent_dir"))
         if location:
             vflask_cli["uwsgi"] = location
         else:
-            click.echo("No such file found under location {}".format(vflask_cli.state.get('parent_dir')), err=True)
-            ctx.abort()
+            error("No such file found under location {}".format(vflask_cli.state.get('parent_dir')))
 
 #--version CB
 def show_version(ctx,params,value):
     if not value or ctx.resilient_parsing:
             return
-    click.echo("Version 1.0.0")
+    style_msg("Version 1.0.0", fg="yellow")
     ctx.exit()
 #callbacks ends here
 
@@ -81,10 +80,66 @@ def delpoy_server(ctx, prod_env, app_dir, uwsgi, host, port):
         if prod_env:
             if uwsgi:
                 #get_file_location
-                click.echo("Under construction")
+                style_msg("Under construction", fg="orange")
             else:
-                click.echo("Kindly use uWSGI implementation and Nginx for production deployment")
+                style_msg("Kindly use uWSGI implementation and Nginx for production deployment", fg="yellow", bg="red")
         ctx.invoke(run_command, host=host, port=port)
     else:
-        click.echo("Kindly specify a proper location or name of app directory")
-        ctx.exit()
+        error("Kindly specify a proper location or name of app directory")
+
+@vflask_cli.command(
+    "shell", 
+    help="Flask Shell related commands are executable within app context", 
+    epilog="Alternative for flask shell command",
+)
+@click.option(
+    "app_dir", "--app-directory", "-A", 
+    type=str, 
+    default=vflask_cli.state.get('parent_dir'),
+    help="Name of the app directory",
+    show_default=True,
+)
+@click.pass_context
+def show_shell(ctx, app_dir):
+    app_loc = get_full_location("__init__.py",app_dir)
+    if app_loc:
+        set_environment(FLASK_APP = app_loc)
+        ctx.invoke(shell_command)
+    else:
+        error("Kindly specify the proper location of app or move to application location")
+
+@vflask_cli.command(
+    "urls",
+    help="List of all url routes used on flask application",
+    epilog="Display the list of routes with their endpoints mapping"
+)
+@click.option(
+    "app_dir", "--app-directory", "-A", 
+    type=str, 
+    default=vflask_cli.state.get('parent_dir'),
+    help="Name of the app directory",
+    show_default=True,
+)
+@click.pass_context
+def show_routes(ctx,app_dir):
+    app_loc = get_full_location("__init__.py", app_dir)
+    if app_loc:
+        set_environment(FLASK_APP=app_loc)
+        route_command_proc = subprocess.Popen(
+                ["flask","routes"],
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                universal_newlines=True
+            )
+        output, err = route_command_proc.communicate()
+        if not err:
+            for num,line in enumerate(output.split("\n")):
+                if num == 0:
+                    style_msg(line, fg="black", bg="white")
+                else:
+                    style_msg(line, fg="green", bg="white")
+        else:
+            error(err)
+    else:
+        error("Specify the app directory or go to application location")
+    ctx.exit()
